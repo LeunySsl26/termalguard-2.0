@@ -114,6 +114,7 @@ Una vez obtenido el porcentaje `PCT`:
 
 ```text
 termalguard-2.0/
+├── customize.sh         # Verificador de dispositivo (exclusivo para POCO F7 Pro) e instalador
 ├── module.prop          # Metadatos del módulo (TermalGuard 2.0)
 ├── service.sh           # Script de arranque post-boot (inicia el demonio con nohup)
 ├── thermal_guard.sh     # Demonio principal de control térmico (ciclo de 2s)
@@ -126,6 +127,8 @@ termalguard-2.0/
 ---
 
 ## 🚀 Instalación y Uso
+
+> **⚠️ Requisito de Dispositivo**: Este módulo verifica durante la instalación (`customize.sh`) que el dispositivo sea exclusivamente un **POCO F7 Pro** (`zorn` / `24117RK2CG`). Si detecta cualquier otro modelo, la instalación se cancelará automáticamente para proteger el hardware.
 
 1. Descarga el archivo `.zip` desde la sección de **Releases** (o comprime el contenido del repositorio en un archivo ZIP desde la raíz del módulo).
 2. Abre **KernelSU Next**, **KernelSU** o **Magisk** e instala el archivo `.zip` como módulo.
