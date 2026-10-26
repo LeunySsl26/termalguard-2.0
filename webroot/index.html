@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TermalGuard 2.0</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: #0b0f17;
+    color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    padding: 0 14px 28px;
+    user-select: none;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 4px 14px;
+    border-bottom: 1px solid #1e293b;
+    margin-bottom: 14px;
+  }
+  .headerTitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #38bdf8;
+    letter-spacing: -0.01em;
+  }
+  .statusBadge {
+    background: rgba(16, 185, 129, 0.16);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    padding: 5px 13px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .statusBadge.inactive {
+    background: rgba(239, 68, 68, 0.16);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.35);
+  }
+  .card {
+    background: #131b26;
+    border: 1px solid #1e293b;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  }
+  .cardHeader {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .metricsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .metricBox {
+    background: #0d131c;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .metricLabel {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 6px;
+  }
+  .metricVal {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #10b981;
+    line-height: 1.1;
+  }
+  .infoRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #94a3b8;
+    padding: 8px 2px;
+  }
+  .infoRow + .infoRow {
+    border-top: 1px solid #1e293b;
+    margin-top: 4px;
+    padding-top: 12px;
+  }
+  .pctVal {
+    color: #38bdf8;
+    font-weight: 800;
+    font-size: 0.95rem;
+  }
+  .reasonBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .reasonBadge.batt {
+    background: rgba(217, 119, 6, 0.22);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+  }
+  .reasonBadge.cpu {
+    background: rgba(220, 38, 38, 0.22);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+  }
+  .reasonBadge.none {
+    background: rgba(16, 185, 129, 0.16);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  .toggleGroup {
+    display: flex;
+    background: #0d131c;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    padding: 3px;
+    margin-bottom: 12px;
+  }
+  .toggleBtn {
+    flex: 1;
+    text-align: center;
+    padding: 11px 0;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #94a3b8;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .toggleBtn.active.aggressive {
+    background: #e11d48;
+    color: #ffffff;
+    font-weight: 700;
+  }
+  .toggleBtn.active.sustained {
+    background: #10b981;
+    color: #ffffff;
+    font-weight: 700;
+  }
+  .profileDesc {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    line-height: 1.45;
+  }
+  .sliderHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .sliderTitle {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .sliderValueCpu {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #38bdf8;
+  }
+  .sliderValueBatt {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #10b981;
+  }
+  .customSlider {
+    position: relative;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    touch-action: pan-y;
+    cursor: pointer;
+  }
+  .sliderTrack {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    background: #263345;
+    border-radius: 4px;
+  }
+  .sliderFill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 33%;
+    background: #38bdf8;
+    border-radius: 4px;
+  }
+  .sliderThumb {
+    position: absolute;
+    top: 50%;
+    left: 33%;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #38bdf8;
+    border: 4px solid #0b0f17;
+    box-shadow: 0 0 0 2px #38bdf8, 0 2px 6px rgba(0,0,0,0.5);
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease;
+  }
+  .customSlider.dragging .sliderThumb {
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+  .scaleRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.74rem;
+    color: #64748b;
+    margin-top: 4px;
+  }
+  .btnWrap {
+    display: flex;
+    justify-content: center;
+    margin: 16px 0;
+  }
+  .restartBtn {
+    background: #16202e;
+    color: #38bdf8;
+    border: 1px solid #263548;
+    border-radius: 12px;
+    padding: 11px 22px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  }
+  .restartBtn:active {
+    transform: scale(0.98);
+    background: #1e2b3c;
+  }
+  .logBox {
+    background: #0d131c;
+    border: 1px dashed #263548;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.78rem;
+    color: #94a3b8;
+    line-height: 1.45;
+    word-break: break-all;
+    margin-bottom: 12px;
+  }
+  .syncFooter {
+    text-align: center;
+    font-size: 0.76rem;
+    color: #64748b;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="headerTitle">🌡️ TermalGuard 2.0</div>
+  <div class="statusBadge" id="daemonBadge">Activo</div>
+</div>
+
+<div class="card">
+  <div class="cardHeader">MÉTRICAS EN TIEMPO REAL</div>
+  <div class="metricsGrid">
+    <div class="metricBox">
+      <div class="metricLabel">Temp. CPU</div>
+      <div class="metricVal" id="curTemp">--°C</div>
+    </div>
+    <div class="metricBox">
+      <div class="metricLabel">Temp. Batería</div>
+      <div class="metricVal" id="curBatt">--°C</div>
+    </div>
+  </div>
+  <div class="infoRow">
+    <span>Rendimiento escalado</span>
+    <span class="pctVal" id="curPct">--%</span>
+  </div>
+  <div class="infoRow">
+    <span>Factor limitante</span>
+    <span class="reasonBadge none" id="curReason">⚡ Sin limitación</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="cardHeader">PERFIL TÉRMICO</div>
+  <div class="toggleGroup">
+    <div class="toggleBtn" id="btnAggressive" onclick="setProfile('aggressive')">🔥 Agresivo</div>
+    <div class="toggleBtn active sustained" id="btnSustained" onclick="setProfile('sustained')">⚙️ Sostenido</div>
+  </div>
+  <div class="profileDesc" id="profileDesc">
+    ⚙️ Modo Sostenido: Curva de disipación equilibrada (piso 35%). Máxima fluidez continua para juegos y uso prolongado.
+  </div>
+</div>
+
+<div class="card">
+  <div class="sliderHeader">
+    <span class="sliderTitle">LÍMITE TEMPERATURA CPU</span>
+    <span class="sliderValueCpu" id="cpuLimitLabel">65°C</span>
+  </div>
+  <div class="customSlider" id="cpuSliderBox">
+    <div class="sliderTrack" id="cpuTrack">
+      <div class="sliderFill" id="cpuFill"></div>
+      <div class="sliderThumb" id="cpuThumb"></div>
+    </div>
+  </div>
+  <div class="scaleRow">
+    <span>40°C (Frío)</span>
+    <span>65°C (Recomendado)</span>
+    <span>85°C (Tope)</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="sliderHeader">
+    <span class="sliderTitle">LÍMITE TEMPERATURA BATERÍA</span>
+    <span class="sliderValueBatt" id="battLimitLabel">42°C</span>
+  </div>
+  <div class="customSlider" id="battSliderBox">
+    <div class="sliderTrack" id="battTrack">
+      <div class="sliderFill" id="battFill"></div>
+      <div class="sliderThumb" id="battThumb"></div>
+    </div>
+  </div>
+  <div class="scaleRow">
+    <span>35°C (Máx. Cuidado)</span>
+    <span>42°C (Seguro)</span>
+    <span>50°C (Límite crítico)</span>
+  </div>
+</div>
+
+<div class="btnWrap">
+  <button class="restartBtn" onclick="restartService()">🔄 Reiniciar Servicio</button>
+</div>
+
+<div class="logBox" id="logBox">Sincronizando...</div>
+<div class="syncFooter" id="syncFooter">Última sincronización: --:--:--</div>
+
+<script>
+const CONF = "/data/local/tmp/thermal_guard.conf";
+const BATT_CONF = "/data/local/tmp/thermal_guard_batt.conf";
+const PROFILE_CONF = "/data/local/tmp/thermal_guard_profile.conf";
+const LOG = "/data/local/tmp/thermal_guard.log";
+const PIDFILE = "/data/local/tmp/thermal_guard.pid";
+
+function sh(cmd) {
+  return new Promise((resolve) => {
+    if (typeof ksu === 'undefined') return resolve('');
+    if (typeof ksu.fullExec === 'function') {
+      ksu.fullExec(cmd).then(res => resolve(res.stdout || '')).catch(() => resolve(''));
+      return;
+    }
+    const cb = 'cb_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+    window[cb] = (errno, stdout, stderr) => {
+      delete window[cb];
+      resolve(stdout || '');
+    };
+    try {
+      const ret = ksu.exec(cmd, '{}', cb);
+      if (typeof ret === 'string') {
+        delete window[cb];
+        resolve(ret);
+      }
+    } catch (e) {
+      delete window[cb];
+      resolve('');
+    }
+  });
+}
+
+let currentProfile = 'sustained';
+let cpuState = { min: 40, max: 85, val: 65 };
+let battState = { min: 35, max: 50, val: 42 };
+let lastCpuTemp = 40;
+let lastBattTemp = 35;
+
+function renderSliderUI(type) {
+  if (type === 'cpu') {
+    const pct = ((cpuState.val - cpuState.min) / (cpuState.max - cpuState.min)) * 100;
+    document.getElementById('cpuFill').style.width = pct + '%';
+    document.getElementById('cpuThumb').style.left = pct + '%';
+    document.getElementById('cpuLimitLabel').textContent = cpuState.val + '°C';
+  } else {
+    const pct = ((battState.val - battState.min) / (battState.max - battState.min)) * 100;
+    document.getElementById('battFill').style.width = pct + '%';
+    document.getElementById('battThumb').style.left = pct + '%';
+    document.getElementById('battLimitLabel').textContent = battState.val + '°C';
+  }
+}
+
+function computePreview(cpuT, battT, cpuLim, battLim, profile) {
+  const isSust = (profile === 'sustained');
+  const startOff = isSust ? 8 : 10;
+  const endOff = isSust ? 12 : 20;
+  const bStartOff = isSust ? 3 : 4;
+  const bEndOff = isSust ? 4 : 6;
+  const minPct = isSust ? 35 : 20;
+  const rangePct = 100 - minPct;
+
+  const rStart = cpuLim - startOff;
+  const rEnd = cpuLim + endOff;
+  const span = Math.max(1, rEnd - rStart);
+  let cpuPct = 100;
+  if (cpuT <= rStart) cpuPct = 100;
+  else if (cpuT >= rEnd) cpuPct = minPct;
+  else cpuPct = 100 - Math.floor(((cpuT - rStart) * rangePct) / span);
+
+  const bRStart = battLim - bStartOff;
+  const bREnd = battLim + bEndOff;
+  const bSpan = Math.max(1, bREnd - bRStart);
+  let battPct = 100;
+  if (battT <= bRStart) battPct = 100;
+  else if (battT >= bREnd) battPct = minPct;
+  else battPct = 100 - Math.floor(((battT - bRStart) * rangePct) / bSpan);
+
+  if (cpuPct === 100 && battPct === 100) return { pct: 100, reason: 'NONE' };
+  if (battPct < cpuPct) return { pct: battPct, reason: 'BATT' };
+  return { pct: cpuPct, reason: 'CPU' };
+}
+
+function renderReasonAndPct(pct, reason) {
+  document.getElementById('curPct').textContent = pct + "%";
+  const reasonEl = document.getElementById('curReason');
+  reasonEl.classList.remove('batt', 'cpu', 'none');
+  if (reason === 'BATT') {
+    reasonEl.textContent = "🔋 Limitado por Batería";
+    reasonEl.classList.add('batt');
+  } else if (reason === 'CPU') {
+    reasonEl.textContent = "🔥 Limitado por CPU";
+    reasonEl.classList.add('cpu');
+  } else {
+    reasonEl.textContent = "⚡ Sin limitación";
+    reasonEl.classList.add('none');
+  }
+}
+
+function updateInstantPreview() {
+  const { pct, reason } = computePreview(lastCpuTemp, lastBattTemp, cpuState.val, battState.val, currentProfile);
+  renderReasonAndPct(pct, reason);
+}
+
+// Controlador de barra fluido a 60fps con proteccion anti-scroll vertical
+function attachSlider(boxId, trackId, stateObj, type, confFile) {
+  const box = document.getElementById(boxId);
+  const track = document.getElementById(trackId);
+  let startX = 0;
+  let startY = 0;
+  let mode = null; // null | 'scroll' | 'drag'
+
+  function updateFromX(clientX) {
+    const rect = track.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    let ratio = (clientX - rect.left) / rect.width;
+    if (ratio < 0) ratio = 0;
+    if (ratio > 1) ratio = 1;
+    const nextVal = Math.round(stateObj.min + ratio * (stateObj.max - stateObj.min));
+    if (nextVal !== stateObj.val) {
+      stateObj.val = nextVal;
+      renderSliderUI(type);
+      updateInstantPreview();
+    }
+  }
+
+  box.addEventListener('touchstart', (e) => {
+    if (!e.touches || !e.touches[0]) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    mode = null;
+  }, { passive: true });
+
+  box.addEventListener('touchmove', (e) => {
+    if (!e.touches || !e.touches[0]) return;
+    const cx = e.touches[0].clientX;
+    const cy = e.touches[0].clientY;
+    const dx = Math.abs(cx - startX);
+    const dy = Math.abs(cy - startY);
+
+    if (!mode) {
+      if (dy > 6 && dy > dx * 1.1) {
+        mode = 'scroll';
+        return;
+      } else if (dx > 4 && dx >= dy) {
+        mode = 'drag';
+        box.classList.add('dragging');
+      } else {
+        return;
+      }
+    }
+
+    if (mode === 'drag') {
+      if (e.cancelable) e.preventDefault();
+      updateFromX(cx);
+    }
+  }, { passive: false });
+
+  function finishTouch() {
+    if (mode === 'drag') {
+      box.classList.remove('dragging');
+      sh("echo " + stateObj.val + " > " + confFile);
+    }
+    mode = null;
+  }
+
+  box.addEventListener('touchend', finishTouch, { passive: true });
+  box.addEventListener('touchcancel', finishTouch, { passive: true });
+
+  let mouseDown = false;
+  box.addEventListener('mousedown', (e) => {
+    mouseDown = true;
+    box.classList.add('dragging');
+    updateFromX(e.clientX);
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (mouseDown) updateFromX(e.clientX);
+  });
+  window.addEventListener('mouseup', () => {
+    if (mouseDown) {
+      mouseDown = false;
+      box.classList.remove('dragging');
+      sh("echo " + stateObj.val + " > " + confFile);
+    }
+  });
+}
+
+attachSlider('cpuSliderBox', 'cpuTrack', cpuState, 'cpu', CONF);
+attachSlider('battSliderBox', 'battTrack', battState, 'batt', BATT_CONF);
+
+function updateToggleUI(profile) {
+  currentProfile = (profile === 'aggressive') ? 'aggressive' : 'sustained';
+  const a = document.getElementById('btnAggressive');
+  const s = document.getElementById('btnSustained');
+  const desc = document.getElementById('profileDesc');
+  a.classList.remove('active', 'aggressive');
+  s.classList.remove('active', 'sustained');
+  if (currentProfile === 'sustained') {
+    s.classList.add('active', 'sustained');
+    desc.textContent = "⚙️ Modo Sostenido: Curva de disipación equilibrada (piso 35%). Máxima fluidez continua para juegos y uso prolongado.";
+  } else {
+    a.classList.add('active', 'aggressive');
+    desc.textContent = "🔥 Modo Agresivo: Curva de enfriamiento intensiva (piso 20%). Prioriza reducir la temperatura rápidamente bajo carga pesada.";
+  }
+}
+
+async function setProfile(profile) {
+  updateToggleUI(profile);
+  updateInstantPreview();
+  await sh("echo " + currentProfile + " > " + PROFILE_CONF);
+}
+
+async function loadCurrentConfig() {
+  renderSliderUI('cpu');
+  renderSliderUI('batt');
+
+  const out = await sh("cat " + CONF + " 2>/dev/null; echo '|'; cat " + BATT_CONF + " 2>/dev/null; echo '|'; cat " + PROFILE_CONF + " 2>/dev/null");
+  if (!out) return;
+  const parts = out.split('|');
+  const cVal = parseInt((parts[0] || '').trim(), 10);
+  const bVal = parseInt((parts[1] || '').trim(), 10);
+  const pVal = (parts[2] || '').trim();
+
+  if (!isNaN(cVal) && cVal >= 40 && cVal <= 85) {
+    cpuState.val = cVal;
+    renderSliderUI('cpu');
+  }
+  if (!isNaN(bVal) && bVal >= 35 && bVal <= 50) {
+    battState.val = bVal;
+    renderSliderUI('batt');
+  }
+  if (pVal) {
+    updateToggleUI(pVal);
+  }
+}
+
+function colorForTemp(t, isBatt) {
+  if (isBatt) {
+    if (t >= 43) return "#ef4444";
+    if (t >= 39) return "#f59e0b";
+    return "#10b981";
+  } else {
+    if (t >= 70) return "#ef4444";
+    if (t >= 55) return "#f59e0b";
+    return "#10b981";
+  }
+}
+
+async function refreshLive() {
+  const cmd = "tail -n 1 " + LOG + " 2>/dev/null; echo '---'; " +
+              "if [ -f " + PIDFILE + " ] && kill -0 $(cat " + PIDFILE + " 2>/dev/null) 2>/dev/null; then echo ALIVE; " +
+              "else nohup sh /data/adb/modules/thermal_guard/thermal_guard.sh restart </dev/null >/dev/null 2>&1 & echo STARTING; fi";
+  const out = await sh(cmd);
+  if (!out) return;
+
+  const parts = out.split('---');
+  const lastLine = (parts[0] || '').trim();
+  const state = (parts[1] || '').trim();
+
+  const badge = document.getElementById('daemonBadge');
+  if (state === 'ALIVE' || state === 'STARTING') {
+    badge.textContent = "Activo";
+    badge.classList.remove('inactive');
+  } else {
+    badge.textContent = "Inactivo";
+    badge.classList.add('inactive');
+  }
+
+  if (lastLine) {
+    document.getElementById('logBox').textContent = lastLine;
+    const m = lastLine.match(/(\d+:\d+:\d+)\s+temp=(\d+)C\s+batt=(\d+)C\s+limit=(\d+)\/(\d+)C\s+profile=(\w+)\s+pct=(\d+)%\s+reason=(\w+)/);
+    if (m) {
+      const timeStr = m[1];
+      const cpuT = parseInt(m[2], 10);
+      const battT = parseInt(m[3], 10);
+      const pct = parseInt(m[7], 10);
+      const reason = m[8];
+
+      lastCpuTemp = cpuT;
+      lastBattTemp = battT;
+
+      const curTempEl = document.getElementById('curTemp');
+      const curBattEl = document.getElementById('curBatt');
+      curTempEl.textContent = cpuT + "°C";
+      curTempEl.style.color = colorForTemp(cpuT, false);
+      curBattEl.textContent = battT + "°C";
+      curBattEl.style.color = colorForTemp(battT, true);
+
+      renderReasonAndPct(pct, reason);
+      document.getElementById('syncFooter').textContent = "Última sincronización: " + timeStr;
+    }
+  }
+}
+
+async function restartService() {
+  document.getElementById('logBox').textContent = "Reiniciando servicio TermalGuard 2.0...";
+  await sh("nohup sh /data/adb/modules/thermal_guard/thermal_guard.sh restart </dev/null >/dev/null 2>&1 &");
+  setTimeout(refreshLive, 1200);
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await loadCurrentConfig();
+  await refreshLive();
+  setInterval(refreshLive, 2000);
+});
+</script>
+</body>
+</html>

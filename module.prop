@@ -1,0 +1,7 @@
+id=thermal_guard
+name=TermalGuard 2.0
+version=v2.0
+versionCode=20
+author=LeunySsl26
+description=Control termico inteligente de CPU, GPU y Bateria con perfiles Agresivo y Sostenido
+webroot=webroot

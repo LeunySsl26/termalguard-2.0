@@ -1,0 +1,232 @@
+================================================================================
+                        REGISTRO TÉCNICO: TERMAL 2.0
+          Documentación Completa y Cálculos de Thermal Guard Pro
+================================================================================
+Fecha de generación: 26 de Octubre de 2026
+Dispositivo: Xiaomi 24117RK2CG (POCO F7 Pro / Redmi K80 - "zorn" / "pineapple")
+Procesador (SoC): Qualcomm Snapdragon 8 Gen 3 (SM8650)
+Kernel: Linux 6.1.138-android14-11
+Gestor Root: KernelSU Next (ksud v3.4.2)
+Ruta del módulo instalado: /data/adb/modules/thermal_guard
+================================================================================
+
+1. ARQUITECTURA DE HARDWARE Y SENSORES DEL DISPOSITIVO
+--------------------------------------------------------------------------------
+1.1 Clústeres de CPU (Potencia total combinada al 100%: 23,193.6 MHz)
+  * Policy 0 (Núcleos 0-1, 2x Cortex-A520 Eficiencia):
+    - Máximo de fábrica (cpuinfo_max_freq): 2,265,600 kHz (2265.6 MHz)
+    - Escalones físicos disponibles (kHz):
+      364800 460800 556800 672000 787200 902400 1017600 1132800 1248000
+      1344000 1459200 1574400 1689600 1804800 1920000 2035200 2150400 2265600
+
+  * Policy 2 (Núcleos 2-4, 3x Cortex-A720 Rendimiento Medio):
+    - Máximo de fábrica (cpuinfo_max_freq): 3,148,800 kHz (3148.8 MHz)
+    - Escalones físicos disponibles (kHz):
+      499200 614400 729600 844800 960000 1075200 1190400 1286400 1401600
+      1497600 1612800 1708800 1824000 1920000 2035200 2131200 2188800 2246400
+      2323200 2380800 2438400 2515200 2572800 2630400 2707200 2764800 2841600
+      2899200 2956800 3014400 3072000 3148800
+
+  * Policy 5 (Núcleos 5-6, 2x Cortex-A720 Rendimiento Alto):
+    - Máximo de fábrica (cpuinfo_max_freq): 2,956,800 kHz (2956.8 MHz)
+    - Escalones físicos disponibles (kHz):
+      499200 614400 729600 844800 960000 1075200 1190400 1286400 1401600
+      1497600 1612800 1708800 1824000 1920000 2035200 2131200 2188800 2246400
+      2323200 2380800 2438400 2515200 2572800 2630400 2707200 2764800 2841600
+      2899200 2956800
+
+  * Policy 7 (Núcleo 7, 1x Cortex-X4 Prime):
+    - Máximo de fábrica (cpuinfo_max_freq): 3,302,400 kHz (3302.4 MHz)
+    - Escalones físicos disponibles (kHz):
+      480000 576000 672000 787200 902400 1017600 1132800 1248000 1363200
+      1478400 1593600 1708800 1824000 1939200 2035200 2112000 2169600 2246400
+      2304000 2380800 2438400 2496000 2553600 2630400 2688000 2745600 2803200
+      2880000 2937600 2995200 3052800 3244800 3302400
+
+1.2 GPU Adreno 750
+  * Nodo principal devfreq: /sys/class/kgsl/kgsl-3d0/devfreq/max_freq
+  * Nodo secundario kgsl:   /sys/class/kgsl/kgsl-3d0/max_gpuclk
+  * Frecuencia máxima (100%): 903,000,000 Hz (903 MHz)
+  * 12 Escalones físicos disponibles (Hz):
+    903000000, 834000000, 770000000, 720000000, 680000000, 629000000,
+    578000000, 500000000, 422000000, 366000000, 310000000, 231000000
+
+1.3 Sensores de Temperatura Utilizados
+  * Sensor de CPU (Promedio SoC / cpu_therm):
+    - Ruta: /sys/class/thermal/thermal_zone57/temp
+    - Unidad: Miligrados Celsius (ejemplo: 41000 -> 41000 / 1000 = 41 °C)
+  * Sensor de Batería:
+    - Ruta: /sys/class/power_supply/battery/temp
+    - Unidad: Décimas de grado Celsius (ejemplo: 361 -> 361 / 10 = 36 °C)
+
+================================================================================
+2. CÓMO SE HACEN LOS CÁLCULOS PARA BAJAR LA TEMPERATURA (FÓRMULAS EXACTAS)
+================================================================================
+El módulo utiliza un algoritmo de **Interpolación Lineal por Ventana Anticipada**.
+A diferencia de un termostato simple que espera a tocar el límite para recortar de
+golpe, este algoritmo crea una "ventana de rampa" que empieza ANTES del límite
+(START_OFFSET) y termina DESPUÉS del límite (END_OFFSET), reduciendo la potencia
+gradualmente grado por grado y liberándola en cuanto la temperatura baja.
+
+2.1 Parámetros de los Perfiles Térmicos
+--------------------------------------------------------------------------------
+A) MODO SOSTENIDO (sustained) -> Equilibrio y fluidez continua
+   * Piso mínimo de rendimiento (MIN_PCT): 35%
+   * Rango máximo recortable (RANGE_PCT = 100 - 35): 65%
+   * Ventana de CPU:
+     - START_OFFSET = 8 °C  (empieza a recortar 8 °C antes del límite de CPU)
+     - END_OFFSET   = 12 °C (llega al piso de 35% a 12 °C sobre el límite de CPU)
+     - SPAN (Ancho total de la rampa CPU) = 8 + 12 = 20 °C
+     - Pendiente de recorte CPU: 65% / 20 °C = 3.25% menos de potencia por cada 1 °C
+   * Ventana de Batería:
+     - B_START_OFFSET = 3 °C (empieza a recortar 3 °C antes del límite de Batería)
+     - B_END_OFFSET   = 4 °C (llega al piso de 35% a 4 °C sobre el límite de Batería)
+     - B_SPAN (Ancho total de la rampa Batería) = 3 + 4 = 7 °C
+     - Pendiente de recorte Batería: 65% / 7 °C = 9.28% menos de potencia por cada 1 °C
+
+B) MODO AGRESIVO (aggressive) -> Enfriamiento rápido e intensivo
+   * Piso mínimo de rendimiento (MIN_PCT): 20%
+   * Rango máximo recortable (RANGE_PCT = 100 - 20): 80%
+   * Ventana de CPU:
+     - START_OFFSET = 10 °C (empieza a recortar 10 °C antes del límite de CPU)
+     - END_OFFSET   = 20 °C (llega al piso de 20% a 20 °C sobre el límite de CPU)
+     - SPAN (Ancho total de la rampa CPU) = 10 + 20 = 30 °C
+     - Pendiente de recorte CPU: 80% / 30 °C = 2.66% menos de potencia por cada 1 °C
+   * Ventana de Batería:
+     - B_START_OFFSET = 4 °C (empieza a recortar 4 °C antes del límite de Batería)
+     - B_END_OFFSET   = 6 °C (llega al piso de 20% a 6 °C sobre el límite de Batería)
+     - B_SPAN (Ancho total de la rampa Batería) = 4 + 6 = 10 °C
+     - Pendiente de recorte Batería: 80% / 10 °C = 8.0% menos de potencia por cada 1 °C
+
+C) MODO COOLDOWN (Referencia del módulo clásico en thermal_guard.txt)
+   * Fija inmediatamente PCT = 35% (COOLDOWN_PCT=35) sin importar el límite.
+   * Mantiene el 35% hasta que TEMP <= 38 °C (COOLDOWN_REVERT_TEMP=38) y luego
+     restaura automáticamente el perfil previo (sustained o aggressive).
+
+2.2 Ecuaciones Paso a Paso (En cada ciclo de 2 segundos)
+--------------------------------------------------------------------------------
+PASO 1: Calcular el porcentaje permitido por CPU (CPU_PCT)
+  1. RSTART = LIMIT - START_OFFSET
+  2. REND   = LIMIT + END_OFFSET
+  3. SPAN   = REND - RSTART
+  4. Evaluación:
+     - Si TEMP <= RSTART:
+         CPU_PCT = 100
+     - Si TEMP >= REND:
+         CPU_PCT = MIN_PCT
+     - Si está entre RSTART y REND:
+         DIFF    = TEMP - RSTART
+         DROP    = (DIFF * RANGE_PCT) / SPAN   [división entera]
+         CPU_PCT = 100 - DROP
+
+PASO 2: Calcular el porcentaje permitido por Batería (BATT_PCT)
+  1. B_RSTART = BATT_LIMIT - B_START_OFFSET
+  2. B_REND   = BATT_LIMIT + B_END_OFFSET
+  3. B_SPAN   = B_REND - B_RSTART
+  4. Evaluación:
+     - Si BATT_TEMP <= B_RSTART:
+         BATT_PCT = 100
+     - Si BATT_TEMP >= B_REND:
+         BATT_PCT = MIN_PCT
+     - Si está entre B_RSTART y B_REND:
+         B_DIFF   = BATT_TEMP - B_RSTART
+         B_DROP   = (B_DIFF * RANGE_PCT) / B_SPAN   [división entera]
+         BATT_PCT = 100 - B_DROP
+
+PASO 3: Elegir el porcentaje más estricto y el Factor Limitante (REASON)
+  - Si CPU_PCT == 100 y BATT_PCT == 100:
+      PCT = 100%  |  REASON = "NONE" (Sin limitación)
+  - Si BATT_PCT < CPU_PCT:
+      PCT = BATT_PCT  |  REASON = "BATT" (Limitado por Batería)
+  - Si CPU_PCT <= BATT_PCT:
+      PCT = CPU_PCT   |  REASON = "CPU"  (Limitado por CPU)
+
+2.3 Ejemplos Numéricos Reales Comprobados
+--------------------------------------------------------------------------------
+* Ejemplo 1 (Batería a 36 °C con Límite Batería en 35 °C, Modo Sostenido):
+  - B_RSTART = 35 - 3 = 32 °C
+  - B_REND   = 35 + 4 = 39 °C  (B_SPAN = 7)
+  - B_DIFF   = 36 - 32 = 4
+  - B_DROP   = (4 * 65) / 7 = 260 / 7 = 37%
+  - BATT_PCT = 100 - 37 = 63%  --> Resultado: pct=63% reason=BATT
+
+* Ejemplo 2 (Batería a 37 °C con Límite Batería en 35 °C, Modo Sostenido):
+  - B_DIFF   = 37 - 32 = 5
+  - B_DROP   = (5 * 65) / 7 = 325 / 7 = 46%
+  - BATT_PCT = 100 - 46 = 54%  --> Resultado: pct=54% reason=BATT
+
+* Ejemplo 3 (Batería enfriándose a 33 °C con Límite en 35 °C, Modo Sostenido):
+  - B_DIFF   = 33 - 32 = 1
+  - B_DROP   = (1 * 65) / 7 = 65 / 7 = 9%
+  - BATT_PCT = 100 - 9 = 91%   --> Resultado: pct=91% reason=BATT
+
+* Ejemplo 4 (CPU a 39 °C con Límite CPU en 40 °C, Modo Agresivo):
+  - RSTART  = 40 - 10 = 30 °C
+  - REND    = 40 + 20 = 60 °C  (SPAN = 30, RANGE_PCT = 80)
+  - DIFF    = 39 - 30 = 9
+  - DROP    = (9 * 80) / 30 = 720 / 30 = 24%
+  - CPU_PCT = 100 - 24 = 76%   --> Resultado: pct=76% reason=CPU
+
+================================================================================
+3. APLICACIÓN EN EL HARDWARE Y CONTROL DE HYPEROS (mi_thermald)
+================================================================================
+3.1 Cálculo de Frecuencia Objetivo por Clúster (CPU)
+  Para cada clúster (policy0, policy2, policy5, policy7):
+    TARGET = (MAXF / 100) * PCT
+  El kernel de Linux selecciona automáticamente el escalón físico disponible en
+  scaling_available_frequencies inmediatamente inferior o igual a TARGET.
+
+3.2 Bypass y Sincronización con HyperOS (mi_thermald)
+  En HyperOS, el demonio nativo `mi_thermald` mantiene abierto el nodo:
+    /sys/class/thermal/thermal_message/cpu_limits
+  Si solo se escribe en `scaling_max_freq`, HyperOS puede dejar bloqueados los
+  clústeres en ~2.32 GHz / 2.24 GHz o sobrescribir nuestros límites.
+  Por eso, en cada ciclo el módulo escribe simultáneamente en:
+    1) /sys/class/thermal/thermal_message/cpu_nolimit_temp -> 85000
+    2) /sys/devices/system/cpu/cpufreq/policyX/scaling_max_freq -> TARGET
+    3) /sys/class/thermal/thermal_message/cpu_limits -> "cpuX TARGET"
+
+3.3 Aplicación en GPU Adreno 750
+  Se calcula GPU_RAW = (903000000 / 100) * PCT, se busca el escalón físico válido
+  en available_frequencies (<= GPU_RAW) y se escribe simultáneamente en:
+    1) /sys/class/kgsl/kgsl-3d0/devfreq/max_freq
+    2) /sys/class/kgsl/kgsl-3d0/max_gpuclk
+
+================================================================================
+4. LECCIONES TÉCNICAS CLAVE APRENDIDAS (KERNELSU NEXT Y ANDROID SHELL)
+================================================================================
+1. API Asíncrona en KernelSU Next WebUI:
+   En KernelSU Next v3.4.2, `ksu.exec(cmd, '{}', callbackName)` es asíncrono y
+   devuelve el resultado mediante una función global `window[callbackName](errno, stdout, stderr)`.
+   Llamarlo de forma síncrona (`const x = ksu.exec(cmd)`) devuelve `undefined`.
+   La WebUI implementa una Promesa `sh(cmd)` compatible con callbacks, `fullExec`
+   y ejecución síncrona.
+
+2. Persistencia del Demonio en Segundo Plano:
+   En el shell de Android (`mksh`), cuando termina una sesión `su -c` o `ksu.exec`,
+   el sistema envía la señal `SIGHUP` a los procesos hijos. Además, si el demonio
+   hereda descriptores abiertos (stdin/stdout/stderr), `ksu.exec` se queda colgado.
+   Solución aplicada en `thermal_guard.sh`:
+   - `trap '' HUP` en la primera línea para ignorar SIGHUP.
+   - `exec </dev/null >/dev/null 2>&1` tras guardar el PID para liberar la consola.
+
+3. Barras Deslizantes Fluidas (60 FPS) con Filtro Anti-Scroll Vertical:
+   En lugar de depender del `<input type="range">` nativo (que salta al tocar la
+   barra mientras haces scroll vertical) o de llamar a `ksu.exec` mientras arrastras
+   (lo que traba la barra), el controlador táctil mide los primeros píxeles del gesto:
+   - Si `dy > dx * 1.1` (scroll vertical): ignora la barra y deja hacer scroll.
+   - Si `dx >= dy` (arrastre horizontal): mueve la barra a 60 FPS, previsualiza el
+     porcentaje al instante y ejecuta `ksu.exec` una sola vez al soltar el dedo.
+
+================================================================================
+5. ARCHIVOS Y RUTAS DE CONFIGURACIÓN EN TIEMPO REAL
+================================================================================
+* Carpeta del módulo:          /data/adb/modules/thermal_guard/
+* Script del demonio:          /data/adb/modules/thermal_guard/thermal_guard.sh
+* Interfaz WebUI:              /data/adb/modules/thermal_guard/webroot/index.html
+* Límite de CPU (°C):          /data/local/tmp/thermal_guard.conf
+* Límite de Batería (°C):      /data/local/tmp/thermal_guard_batt.conf
+* Perfil activo:               /data/local/tmp/thermal_guard_profile.conf
+* PID del proceso en vivo:     /data/local/tmp/thermal_guard.pid
+* Registro en tiempo real:     /data/local/tmp/thermal_guard.log
+================================================================================
