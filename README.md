@@ -1,6 +1,6 @@
 # 🌡️ TermalGuard 2.0
 
-**TermalGuard 2.0** es un módulo de código abierto para **KernelSU / KernelSU Next / Magisk** que proporciona control térmico inteligente y dinámico sobre la **CPU**, **GPU** y **Batería** en dispositivos Android con procesadores Qualcomm Snapdragon (optimizado para **Snapdragon 8 Gen 3 / SM8650** en HyperOS), incluyendo una **WebUI interactiva a 60 FPS** en tiempo real.
+**TermalGuard 2.0** es un módulo de código abierto para **KernelSU / KernelSU Next / Magisk** diseñado **exclusivamente para el POCO F7 Pro (`zorn` / `24117RK2CG`)**, que proporciona control térmico inteligente y dinámico sobre la **CPU**, **GPU** y **Batería** (Snapdragon 8 Gen 3 / SM8650 en HyperOS), incluyendo una **WebUI interactiva a 60 FPS** en tiempo real.
 
 ---
 
